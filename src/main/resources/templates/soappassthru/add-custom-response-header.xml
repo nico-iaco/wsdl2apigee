@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage name="add-custom-response-header">
+	<DisplayName>setCustomResponseHeader</DisplayName>
+	<AssignTo createNew="false" type="request"/>
+	<Set>
+		<Headers>
+			<Header name="source-ip">{request.header.x-forwarded-for}</Header>
+			<Header name="source-app-name">{apigee.developer.app.name}</Header>
+		</Headers>
+	</Set>
+</AssignMessage>

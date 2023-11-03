@@ -57,6 +57,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import com.apigee.utils.Options.Multiplicity;
 import com.apigee.utils.Options.Separator;
@@ -103,6 +104,7 @@ public class GenerateProxy {
     private static final String SOAP2API_TARGET_TEMPLATE = "/templates/soap2api/targetDefault.xml";
     private static final String SOAP2API_EXTRACT_TEMPLATE = "/templates/soap2api/ExtractPolicy.xml";
     private static final String SOAP2API_ASSIGN_TEMPLATE = "/templates/soap2api/AssignMessagePolicy.xml";
+    private static final String SOAP2API_ADD_CUSTOM_RESPONSE_HEADER_TEMPLATE = "/templates/soap2api/add-custom-response-header.xml";
     private static final String SOAP2API_XSLT11POLICY_TEMPLATE = "/templates/soap2api/add-namespace11.xml";
     private static final String SOAP2API_XSLT11_TEMPLATE = "/templates/soap2api/add-namespace11.xslt";
     private static final String SOAP2API_XSLT12POLICY_TEMPLATE = "/templates/soap2api/add-namespace12.xml";
@@ -432,6 +434,7 @@ public class GenerateProxy {
             String oauthPolicy = "verify-oauth-v2-access-token";
             String remoOAuthPolicy = "remove-header-authorization";
             String quota = "impose-quota-oauth";
+            String addCustomResponseHeaderPolicy = "add-custom-response-header";
 
             // Add policy to proxy.xml
             Node policy1 = apiTemplateDocument.createElement("Policy");
@@ -440,8 +443,12 @@ public class GenerateProxy {
             Node policy2 = apiTemplateDocument.createElement("Policy");
             policy2.setTextContent(remoOAuthPolicy);
 
+            Node policy3 = apiTemplateDocument.createElement("Policy");
+            policy3.setTextContent(addCustomResponseHeaderPolicy);
+
             policies.appendChild(policy1);
             policies.appendChild(policy2);
+            policies.appendChild(policy3);
 
             Node preFlowRequest = proxyDefault.getElementsByTagName("PreFlow").item(0).getChildNodes().item(1);
 
@@ -459,15 +466,24 @@ public class GenerateProxy {
             preFlowRequest.appendChild(step2);
 
             if (QUOTAOAUTH) {
-                Node policy3 = apiTemplateDocument.createElement("Policy");
+                Node policy4 = apiTemplateDocument.createElement("Policy");
                 policy2.setTextContent(quota);
-                policies.appendChild(policy3);
+                policies.appendChild(policy4);
                 step3 = proxyDefault.createElement("Step");
                 name3 = proxyDefault.createElement("Name");
                 name3.setTextContent(quota);
                 step3.appendChild(name3);
                 preFlowRequest.appendChild(step3);
             }
+
+            Node postFlowResponse = proxyDefault.getElementsByTagName("PostFlow").item(0).getChildNodes().item(3);
+
+            step4 = proxyDefault.createElement("Step");
+            name4 = proxyDefault.createElement("Name");
+            name4.setTextContent(addCustomResponseHeaderPolicy);
+            step4.appendChild(name4);
+            postFlowResponse.appendChild(step4);
+
         }
 
         if (org.apache.commons.lang3.StringUtils.isNotBlank(kvm)) {
@@ -1247,6 +1263,9 @@ public class GenerateProxy {
                     Files.copy(getClass().getResourceAsStream(sourcePath + "verify-oauth-v2-access-token.xml"),
                         Paths.get(targetPath + "verify-oauth-v2-access-token.xml"),
                         StandardCopyOption.REPLACE_EXISTING);
+                    Files.copy(getClass().getResourceAsStream(sourcePath + "add-custom-response-header.xml"),
+                        Paths.get(targetPath + "add-custom-response-header.xml"),
+                        StandardCopyOption.REPLACE_EXISTING);
                     Files.copy(getClass().getResourceAsStream(sourcePath + "remove-header-authorization.xml"),
                         Paths.get(targetPath + "remove-header-authorization.xml"),
                         StandardCopyOption.REPLACE_EXISTING);
@@ -1308,6 +1327,9 @@ public class GenerateProxy {
                 Files.copy(getClass().getResourceAsStream(sourcePath + "remove-namespaces.xslt"),
                     Paths.get(xslResourcePath + "remove-namespaces.xslt"),
                     StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(getClass().getResourceAsStream(sourcePath + "add-custom-response-header.xml"),
+                        Paths.get(targetPath + "add-custom-response-header.xml"),
+                        StandardCopyOption.REPLACE_EXISTING);
                 /*
                  * Files.copy(getClass().getResourceAsStream(sourcePath +
                  * "root-wrapper.js"), Paths.get(jsResourcePath +
@@ -1393,11 +1415,13 @@ public class GenerateProxy {
             String oauthPolicy = "verify-oauth-v2-access-token";
             String remoOAuthPolicy = "remove-header-authorization";
             String quota = "impose-quota-oauth";
+            String addCustomResponseHeaderPolicy = "add-custom-response-header";
 
             Node preFlowRequest = proxyDefault.getElementsByTagName("PreFlow").item(0).getChildNodes().item(1);
 
             Node step1 = proxyDefault.createElement("Step");
             Node name1 = proxyDefault.createElement("Name");
+
             name1.setTextContent(oauthPolicy);
             step1.appendChild(name1);
 
@@ -1410,14 +1434,23 @@ public class GenerateProxy {
             preFlowRequest.appendChild(step2);
 
             if (QUOTAOAUTH) {
-                Node policy3 = proxyDefault.createElement("Policy");
-                policies.appendChild(policy3);
+                Node policy4 = proxyDefault.createElement("Policy");
+                policies.appendChild(policy4);
                 Node step3 = proxyDefault.createElement("Step");
                 Node name3 = proxyDefault.createElement("Name");
                 name3.setTextContent(quota);
                 step3.appendChild(name3);
                 preFlowRequest.appendChild(step3);
             }
+
+            NodeList pf = proxyDefault.getElementsByTagName("PostFlow").item(0).getChildNodes();
+            Node postFlowResponse = pf.item(3);
+
+            Node step4 = proxyDefault.createElement("Step");
+            Node name4 = proxyDefault.createElement("Name");
+            name4.setTextContent(addCustomResponseHeaderPolicy);
+            step4.appendChild(name4);
+            postFlowResponse.appendChild(step4);
         }
 
         Node httpProxyConnection = proxyDefault.getElementsByTagName("HTTPProxyConnection").item(0);
