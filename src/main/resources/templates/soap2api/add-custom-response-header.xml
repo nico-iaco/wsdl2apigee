@@ -5,7 +5,7 @@
 	<Set>
 		<Headers>
 			<Header name="source-ip">{request.header.x-forwarded-for}</Header>
-			<Header name="source-app-name">{apigee.developer.app.name}</Header>
+			<Header name="source-dev-username">{developer.userName}</Header>
 		</Headers>
 	</Set>
 </AssignMessage>
