@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage name="add-custom-response-header-origin">
+	<DisplayName>setCustomRequestHeaderOrigin</DisplayName>
+	<AssignTo createNew="false" type="request"/>
+	<Set>
+		<Headers>
+			<Header name="source-ip">{request.header.origin}</Header>
+			<Header name="source-dev-username">{app.GroupamaUserName}</Header>
+			<Header name="Access-Control-Allow-Origin">{request.header.origin}</Header>
+			<Header name="access_token">{access_token}</Header>
+		</Headers>
+	</Set>
+</AssignMessage>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage name="add-custom-response-header-forwarded">
+	<DisplayName>setCustomRequestHeaderForwarded</DisplayName>
+	<AssignTo createNew="false" type="request"/>
+	<Set>
+		<Headers>
+			<Header name="source-ip">{request.header.x-forwarded-for}</Header>
+			<Header name="source-dev-username">{app.GroupamaUserName}</Header>
+			<Header name="Access-Control-Allow-Origin">{request.header.x-forwarded-for}</Header>
+			<Header name="access_token">{access_token}</Header>
+		</Headers>
+	</Set>
+</AssignMessage>

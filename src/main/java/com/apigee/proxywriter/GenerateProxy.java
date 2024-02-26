@@ -104,7 +104,9 @@ public class GenerateProxy {
     private static final String SOAP2API_TARGET_TEMPLATE = "/templates/soap2api/targetDefault.xml";
     private static final String SOAP2API_EXTRACT_TEMPLATE = "/templates/soap2api/ExtractPolicy.xml";
     private static final String SOAP2API_ASSIGN_TEMPLATE = "/templates/soap2api/AssignMessagePolicy.xml";
-    private static final String SOAP2API_ADD_CUSTOM_RESPONSE_HEADER_TEMPLATE = "/templates/soap2api/add-custom-response-header.xml";
+    private static final String SOAP2API_ADD_CUSTOM_REQUEST_HEADER_TEMPLATE = "/templates/soap2api/add-custom-request-header-forwarded.xml";
+    private static final String SOAP2API_OAUTH_SHARED_FLOW_TEMPLATE = "/templates/soap2api/oauth-shared-flow.xml";
+    private static final String SOAP2API_CORS_SHARED_FLOW_TEMPLATE = "/templates/soap2api/cors-shared-flow.xml";
     private static final String SOAP2API_XSLT11POLICY_TEMPLATE = "/templates/soap2api/add-namespace11.xml";
     private static final String SOAP2API_XSLT11_TEMPLATE = "/templates/soap2api/add-namespace11.xslt";
     private static final String SOAP2API_XSLT12POLICY_TEMPLATE = "/templates/soap2api/add-namespace12.xml";
@@ -431,44 +433,50 @@ public class GenerateProxy {
 
         // add oauth policies if set
         if (OAUTH) {
-            String oauthPolicy = "verify-oauth-v2-access-token";
-            String remoOAuthPolicy = "remove-header-authorization";
+            /*String oauthPolicy = "verify-oauth-v2-access-token";
+            String remoOAuthPolicy = "remove-header-authorization";*/
             String quota = "impose-quota-oauth";
-            String addCustomResponseHeaderPolicy = "add-custom-response-header";
+            /*String addCustomRequestHeaderOriginPolicy = "add-custom-request-header-origin";
+            String addCustomRequestHeaderForwardedPolicy = "add-custom-request-header-forwarded";*/
+            String oauthSharedFlowPolicy = "OauthSharedFlow";
 
             // Add policy to proxy.xml
             Node policy1 = apiTemplateDocument.createElement("Policy");
-            policy1.setTextContent(oauthPolicy);
+            policy1.setTextContent(oauthSharedFlowPolicy);
 
-            Node policy2 = apiTemplateDocument.createElement("Policy");
+            /*Node policy2 = apiTemplateDocument.createElement("Policy");
             policy2.setTextContent(remoOAuthPolicy);
 
             Node policy3 = apiTemplateDocument.createElement("Policy");
-            policy3.setTextContent(addCustomResponseHeaderPolicy);
+            policy3.setTextContent(addCustomRequestHeaderOriginPolicy);
+
+            Node policy4 = apiTemplateDocument.createElement("Policy");
+            policy4.setTextContent(addCustomRequestHeaderForwardedPolicy);*/
 
             policies.appendChild(policy1);
-            policies.appendChild(policy2);
+            /*policies.appendChild(policy2);
             policies.appendChild(policy3);
+            policies.appendChild(policy4);*/
 
             Node preFlowRequest = proxyDefault.getElementsByTagName("PreFlow").item(0).getChildNodes().item(1);
 
             step1 = proxyDefault.createElement("Step");
             name1 = proxyDefault.createElement("Name");
-            name1.setTextContent(oauthPolicy);
+            name1.setTextContent(oauthSharedFlowPolicy);
             step1.appendChild(name1);
 
-            step2 = proxyDefault.createElement("Step");
+            /*step2 = proxyDefault.createElement("Step");
             name2 = proxyDefault.createElement("Name");
             name2.setTextContent(remoOAuthPolicy);
-            step2.appendChild(name2);
+            step2.appendChild(name2);*/
 
             preFlowRequest.appendChild(step1);
-            preFlowRequest.appendChild(step2);
+            //preFlowRequest.appendChild(step2);
 
             if (QUOTAOAUTH) {
-                Node policy4 = apiTemplateDocument.createElement("Policy");
-                policy2.setTextContent(quota);
-                policies.appendChild(policy4);
+                Node policy5 = apiTemplateDocument.createElement("Policy");
+                policy5.setTextContent(quota);
+                policies.appendChild(policy5);
                 step3 = proxyDefault.createElement("Step");
                 name3 = proxyDefault.createElement("Name");
                 name3.setTextContent(quota);
@@ -478,11 +486,24 @@ public class GenerateProxy {
 
             Node postFlowResponse = proxyDefault.getElementsByTagName("PostFlow").item(0).getChildNodes().item(3);
 
-            step4 = proxyDefault.createElement("Step");
+            /*step4 = proxyDefault.createElement("Step");
             name4 = proxyDefault.createElement("Name");
-            name4.setTextContent(addCustomResponseHeaderPolicy);
+            name4.setTextContent(addCustomRequestHeaderOriginPolicy);
+            name5 = proxyDefault.createElement("Condition");
+            name5.setTextContent("request.verb != \"OPTIONS\" and request.header.origin != null");
             step4.appendChild(name4);
-            postFlowResponse.appendChild(step4);
+            step4.appendChild(name5);
+
+            step5 = proxyDefault.createElement("Step");
+            Element name6 = proxyDefault.createElement("Name");
+            name6.setTextContent(addCustomRequestHeaderForwardedPolicy);
+            Element name7 = proxyDefault.createElement("Condition");
+            name7.setTextContent("request.verb != \"OPTIONS\" and request.header.origin == null");
+            step5.appendChild(name6);
+            step5.appendChild(name7);
+
+            preFlowRequest.appendChild(step4);
+            preFlowRequest.appendChild(step5);*/
 
         }
 
@@ -556,7 +577,7 @@ public class GenerateProxy {
             routeRule.appendChild(routeCondition);
             proxyEndpoint.appendChild(routeRule);
 
-            String cors = "add-cors";
+            String cors = "CorsSharedFlow";
             String corsCondition = "request.verb == \"OPTIONS\"";
 
             // Add policy to proxy.xml
@@ -1260,14 +1281,17 @@ public class GenerateProxy {
                 Files.copy(getClass().getResourceAsStream(sourcePath + "Invalid-SOAP.xml"),
                     Paths.get(targetPath + "Invalid-SOAP.xml"), StandardCopyOption.REPLACE_EXISTING);
                 if (OAUTH) {
-                    Files.copy(getClass().getResourceAsStream(sourcePath + "verify-oauth-v2-access-token.xml"),
+                    /*Files.copy(getClass().getResourceAsStream(sourcePath + "verify-oauth-v2-access-token.xml"),
                         Paths.get(targetPath + "verify-oauth-v2-access-token.xml"),
                         StandardCopyOption.REPLACE_EXISTING);
-                    Files.copy(getClass().getResourceAsStream(sourcePath + "add-custom-response-header.xml"),
-                        Paths.get(targetPath + "add-custom-response-header.xml"),
+                    Files.copy(getClass().getResourceAsStream(sourcePath + "add-custom-request-header-forwarded.xml"),
+                        Paths.get(targetPath + "add-custom-request-header-forwarded.xml"),
                         StandardCopyOption.REPLACE_EXISTING);
                     Files.copy(getClass().getResourceAsStream(sourcePath + "remove-header-authorization.xml"),
                         Paths.get(targetPath + "remove-header-authorization.xml"),
+                        StandardCopyOption.REPLACE_EXISTING);*/
+                    Files.copy(getClass().getResourceAsStream(sourcePath + "oauth-shared-flow.xml"),
+                        Paths.get(targetPath + "oauth-shared-flow.xml"),
                         StandardCopyOption.REPLACE_EXISTING);
                     if (QUOTAOAUTH) {
                         Files.copy(getClass().getResourceAsStream(sourcePath + "impose-quota-oauth.xml"),
@@ -1327,8 +1351,8 @@ public class GenerateProxy {
                 Files.copy(getClass().getResourceAsStream(sourcePath + "remove-namespaces.xslt"),
                     Paths.get(xslResourcePath + "remove-namespaces.xslt"),
                     StandardCopyOption.REPLACE_EXISTING);
-                Files.copy(getClass().getResourceAsStream(sourcePath + "add-custom-response-header.xml"),
-                        Paths.get(targetPath + "add-custom-response-header.xml"),
+                Files.copy(getClass().getResourceAsStream(sourcePath + "add-custom-request-header-forwarded.xml"),
+                        Paths.get(targetPath + "add-custom-request-header-forwarded.xml"),
                         StandardCopyOption.REPLACE_EXISTING);
                 /*
                  * Files.copy(getClass().getResourceAsStream(sourcePath +
@@ -1338,12 +1362,15 @@ public class GenerateProxy {
                  */
 
                 if (OAUTH) {
-                    Files.copy(getClass().getResourceAsStream(sourcePath + "verify-oauth-v2-access-token.xml"),
+                    /*Files.copy(getClass().getResourceAsStream(sourcePath + "verify-oauth-v2-access-token.xml"),
                         Paths.get(targetPath + "verify-oauth-v2-access-token.xml"),
                         StandardCopyOption.REPLACE_EXISTING);
                     Files.copy(getClass().getResourceAsStream(sourcePath + "remove-header-authorization.xml"),
                         Paths.get(targetPath + "remove-header-authorization.xml"),
-                        StandardCopyOption.REPLACE_EXISTING);
+                        StandardCopyOption.REPLACE_EXISTING);*/
+                    Files.copy(getClass().getResourceAsStream(sourcePath + "oauth-shared-flow.xml"),
+                            Paths.get(targetPath + "oauth-shared-flow.xml"),
+                            StandardCopyOption.REPLACE_EXISTING);
                     if (QUOTAOAUTH) {
                         Files.copy(getClass().getResourceAsStream(sourcePath + "impose-quota-oauth.xml"),
                             Paths.get(targetPath + "impose-quota-oauth.xml"),
@@ -1366,8 +1393,11 @@ public class GenerateProxy {
                 }
 
                 if (CORS) {
-                    Files.copy(getClass().getResourceAsStream(sourcePath + "add-cors.xml"),
-                        Paths.get(targetPath + "add-cors.xml"), StandardCopyOption.REPLACE_EXISTING);
+                    /*Files.copy(getClass().getResourceAsStream(sourcePath + "add-cors.xml"),
+                        Paths.get(targetPath + "add-cors.xml"), StandardCopyOption.REPLACE_EXISTING);*/
+                    Files.copy(getClass().getResourceAsStream(sourcePath + "cors-shared-flow.xml"),
+                            Paths.get(targetPath + "cors-shared-flow.xml"),
+                            StandardCopyOption.REPLACE_EXISTING);
                 }
             }
         } catch (Exception e) {
