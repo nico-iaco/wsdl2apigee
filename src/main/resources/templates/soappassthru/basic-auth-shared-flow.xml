@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<FlowCallout continueOnError="false" enabled="true" name="basic-auth-shared-flow">
+	<DisplayName>BackendTargetBasicSharedFlow</DisplayName>
+	<Parameters/>
+	<SharedFlowBundle>BackendTargetBasicSharedFlow</SharedFlowBundle>
+</FlowCallout>

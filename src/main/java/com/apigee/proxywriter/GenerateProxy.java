@@ -172,6 +172,8 @@ public class GenerateProxy {
 
     private String kvm;
 
+    private String auth;
+
     private String apiName;
 
     private String proxyName;
@@ -438,7 +440,7 @@ public class GenerateProxy {
             String quota = "impose-quota-oauth";
             /*String addCustomRequestHeaderOriginPolicy = "add-custom-request-header-origin";
             String addCustomRequestHeaderForwardedPolicy = "add-custom-request-header-forwarded";*/
-            String oauthSharedFlowPolicy = "OauthSharedFlow";
+            String oauthSharedFlowPolicy = "oauth-shared-flow";
 
             // Add policy to proxy.xml
             Node policy1 = apiTemplateDocument.createElement("Policy");
@@ -522,6 +524,32 @@ public class GenerateProxy {
             step1.appendChild(name1);
 
             preFlowRequest.appendChild(step1);
+        }
+
+        if (org.apache.commons.lang3.StringUtils.isNotBlank(auth) && "BASIC".equalsIgnoreCase(auth)) {
+            String kvmEntryPolicyName = "getAuthKvmEntry";
+
+            // Add policy to proxy.xml
+            Node policy1 = apiTemplateDocument.createElement("Policy");
+            policy1.setTextContent(kvmEntryPolicyName);
+
+            Node policy2 = apiTemplateDocument.createElement("Policy");
+            policy2.setTextContent("basic-auth-shared-flow");
+
+            Node preFlowRequest = proxyDefault.getElementsByTagName("PreFlow").item(0).getChildNodes().item(1);
+
+            step1 = proxyDefault.createElement("Step");
+            name1 = proxyDefault.createElement("Name");
+            name1.setTextContent(kvmEntryPolicyName);
+            step1.appendChild(name1);
+
+            step2 = proxyDefault.createElement("Step");
+            name2 = proxyDefault.createElement("Name");
+            name2.setTextContent("basic-auth-shared-flow");
+            step2.appendChild(name2);
+
+            preFlowRequest.appendChild(step1);
+            preFlowRequest.appendChild(step2);
         }
 
         if (APIKEY) {
@@ -1034,6 +1062,38 @@ public class GenerateProxy {
         }.getClass().getEnclosingMethod().getName());
     }
 
+    private void writeGetAuthKvmEntryPolicy() throws Exception {
+        LOGGER.entering(GenerateProxy.class.getName(), new Object() {
+        }.getClass().getEnclosingMethod().getName());
+        XMLUtils xmlUtils = new XMLUtils();
+
+        Document getKvmEntryDocument = xmlUtils.readXML(SOAP2API_GET_KVM_ENTRY_TEMPLATE);
+
+        Document getKvmEntryXML = xmlUtils.cloneDocument(getKvmEntryDocument);
+
+        Node rootElement = getKvmEntryXML.getFirstChild();
+        NamedNodeMap attr = rootElement.getAttributes();
+        Node nodeAttrName = attr.getNamedItem("name");
+        nodeAttrName.setNodeValue("getAuthKvmEntry");
+        Node nodeAttrMapIdentifier = attr.getNamedItem("mapIdentifier");
+        nodeAttrMapIdentifier.setNodeValue("auth");
+
+        String apigeeVarName = "rawAuth";
+
+        Node get = getKvmEntryXML.getElementsByTagName("Get").item(0);
+        attr = get.getAttributes();
+        Node nodeAttrAssignedTo = attr.getNamedItem("assignTo");
+        nodeAttrAssignedTo.setNodeValue(apigeeVarName);
+
+        Node parameter = getKvmEntryXML.getElementsByTagName("Parameter").item(0);
+        parameter.setTextContent(apigeeVarName);
+
+        xmlUtils.writeXML(getKvmEntryXML, buildFolder + File.separator + "apiproxy" + File.separator + "policies"
+                + File.separator + "getAuthKvmEntry" + ".xml");
+        LOGGER.exiting(GenerateProxy.class.getName(), new Object() {
+        }.getClass().getEnclosingMethod().getName());
+    }
+
     private void writeSOAP2APIExtractPolicy(Document extractTemplate, String operationName, String policyName)
         throws Exception {
 
@@ -1194,7 +1254,7 @@ public class GenerateProxy {
                 Node response = targetDefault.getElementsByTagName("Response").item(0);
                 Node step = targetDefault.createElement("Step");
                 Node name = targetDefault.createElement("Name");
-                name.setTextContent("add-cors");
+                name.setTextContent("CorsSharedFlow");
                 step.appendChild(name);
                 response.appendChild(step);
             }
@@ -1299,6 +1359,18 @@ public class GenerateProxy {
                             StandardCopyOption.REPLACE_EXISTING);
                     }
                 }
+                if ("BASIC".equalsIgnoreCase(auth)) {
+                    Files.copy(getClass().getResourceAsStream(sourcePath + "basic-auth-shared-flow.xml"),
+                            Paths.get(targetPath + "basic-auth-shared-flow.xml"),
+                            StandardCopyOption.REPLACE_EXISTING);
+                }
+                if (CORS) {
+                    /*Files.copy(getClass().getResourceAsStream(sourcePath + "add-cors.xml"),
+                        Paths.get(targetPath + "add-cors.xml"), StandardCopyOption.REPLACE_EXISTING);*/
+                    Files.copy(getClass().getResourceAsStream(sourcePath + "cors-shared-flow.xml"),
+                            Paths.get(targetPath + "cors-shared-flow.xml"),
+                            StandardCopyOption.REPLACE_EXISTING);
+                }
                 /*
                  * Files.copy(getClass().getResourceAsStream(sourcePath +
                  * "Return-WSDL.xml"), Paths.get(targetPath +
@@ -1378,6 +1450,12 @@ public class GenerateProxy {
                     }
                 }
 
+                if ("BASIC".equalsIgnoreCase(auth)) {
+                    Files.copy(getClass().getResourceAsStream(sourcePath + "basic-auth-shared-flow.xml"),
+                            Paths.get(targetPath + "basic-auth-shared-flow.xml"),
+                            StandardCopyOption.REPLACE_EXISTING);
+                }
+
                 if (APIKEY) {
                     Files.copy(getClass().getResourceAsStream(sourcePath + "verify-api-key.xml"),
                         Paths.get(targetPath + "verify-api-key.xml"),
@@ -1442,10 +1520,10 @@ public class GenerateProxy {
 
             Node policies = proxyDefault.getElementsByTagName("Policies").item(0);
 
-            String oauthPolicy = "verify-oauth-v2-access-token";
-            String remoOAuthPolicy = "remove-header-authorization";
+            String oauthPolicy = "oauth-shared-flow";
+            //String remoOAuthPolicy = "remove-header-authorization";
             String quota = "impose-quota-oauth";
-            String addCustomResponseHeaderPolicy = "add-custom-response-header";
+            //String addCustomResponseHeaderPolicy = "add-custom-response-header";
 
             Node preFlowRequest = proxyDefault.getElementsByTagName("PreFlow").item(0).getChildNodes().item(1);
 
@@ -1455,13 +1533,13 @@ public class GenerateProxy {
             name1.setTextContent(oauthPolicy);
             step1.appendChild(name1);
 
-            Node step2 = proxyDefault.createElement("Step");
+            /*Node step2 = proxyDefault.createElement("Step");
             Node name2 = proxyDefault.createElement("Name");
             name2.setTextContent(remoOAuthPolicy);
-            step2.appendChild(name2);
+            step2.appendChild(name2);*/
 
             preFlowRequest.insertBefore(step1, preFlowRequest.getFirstChild());
-            preFlowRequest.appendChild(step2);
+            //preFlowRequest.appendChild(step2);
 
             if (QUOTAOAUTH) {
                 Node policy4 = proxyDefault.createElement("Policy");
@@ -1473,14 +1551,14 @@ public class GenerateProxy {
                 preFlowRequest.appendChild(step3);
             }
 
-            NodeList pf = proxyDefault.getElementsByTagName("PostFlow").item(0).getChildNodes();
-            Node postFlowResponse = pf.item(3);
+            /*NodeList pf = proxyDefault.getElementsByTagName("PostFlow").item(0).getChildNodes();
+            Node postFlowResponse = pf.item(3);*/
 
-            Node step4 = proxyDefault.createElement("Step");
+            /*Node step4 = proxyDefault.createElement("Step");
             Node name4 = proxyDefault.createElement("Name");
             name4.setTextContent(addCustomResponseHeaderPolicy);
             step4.appendChild(name4);
-            postFlowResponse.appendChild(step4);
+            postFlowResponse.appendChild(step4);*/
         }
 
         Node httpProxyConnection = proxyDefault.getElementsByTagName("HTTPProxyConnection").item(0);
@@ -1501,7 +1579,7 @@ public class GenerateProxy {
             soapCondition.setTextContent(soapConditionText + SOAP12 + "\"))  and (request.verb != \"GET\")");
         }
 
-        String conditionText = "(proxy.pathsuffix MatchesPath \"/\") and (request.verb = \"POST\") and (operation = \"";
+        String conditionText = "((proxy.pathsuffix = \"\") or (proxy.pathsuffix = \"/\")) and (request.verb = \"POST\") and (operation = \"";
         Node flows = proxyDefault.getElementsByTagName("Flows").item(0);
         Node flow;
         Node flowDescription;
@@ -3049,6 +3127,9 @@ public class GenerateProxy {
                 if (org.apache.commons.lang3.StringUtils.isNotBlank(kvm)) {
                     writeGetKvmEntryPolicy();
                 }
+                if (org.apache.commons.lang3.StringUtils.isNotBlank(auth) && "BASIC".equalsIgnoreCase(auth)) {
+                    writeGetAuthKvmEntryPolicy();
+                }
                 if (!PASSTHRU) {
                     LOGGER.info("Generated SOAP Message Templates.");
                     writeSOAP2APIProxyEndpoint(proxyDescription);
@@ -3239,6 +3320,8 @@ public class GenerateProxy {
         opt.getSet().addOption("backendurlvalidation", Separator.EQUALS, Multiplicity.ZERO_OR_ONE);
         // set kvm name to use to retrive target backend url
         opt.getSet().addOption("kvm", Separator.EQUALS, Multiplicity.ZERO_OR_ONE);
+        // set auth kvm name to use to retrive auth type
+        opt.getSet().addOption("auth", Separator.EQUALS, Multiplicity.ZERO_OR_ONE);
         // set api name
         opt.getSet().addOption("apiname", Separator.EQUALS, Multiplicity.ZERO_OR_ONE);
         // add enable cors conditions
@@ -3320,6 +3403,10 @@ public class GenerateProxy {
 
         if (opt.getSet().isSet("cors")) {
             genProxy.setCORS(new Boolean(opt.getSet().getOption("cors").getResultValue(0)));
+        }
+
+        if (opt.getSet().isSet("auth")) {
+            genProxy.setAuth(opt.getSet().getOption("auth").getResultValue(0));
         }
 
         if (opt.getSet().isSet("oauth")) {
@@ -3451,6 +3538,14 @@ public class GenerateProxy {
 
     public void setApiName(String apiName) {
         this.apiName = apiName;
+    }
+
+    public String getAuth() {
+        return auth;
+    }
+
+    public void setAuth(String auth) {
+        this.auth = auth;
     }
 
     /**
